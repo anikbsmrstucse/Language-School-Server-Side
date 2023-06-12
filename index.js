@@ -32,8 +32,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const classesCollection = client.db('langSCHOOL').collection('courses');
     const userCollection = client.db('langSCHOOL').collection('users');
+    const instructorsCollection = client.db('langSCHOOL').collection('instructors');
+    const classesCollection = client.db('langSCHOOL').collection('courses');
+    const cartsCollection = client.db('langSCHOOL').collection('carts');
     
     // users api
     app.post('/users',async(req,res)=>{
@@ -46,11 +48,34 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     })
+
+    // instructors api
+    app.get('/instructors',async(req,res)=>{
+      const result = await instructorsCollection.find().toArray();
+      res.send(result);
+    })
     
     // all classes
     app.get('/classes',async(req,res)=>{
         const result = await classesCollection.find().toArray();
         res.send(result);
+    })
+
+    // select class
+
+    app.get('/carts/:email',async(req,res)=>{
+      const email = req.params.email;
+      console.log(email);
+      const query = {email:email};
+      const result = await cartsCollection.findOne(query);
+      res.send(result);
+    })
+
+    app.post('/carts',async(req,res)=>{
+      const selectCourse = req.body;
+      console.log(selectCourse);
+      const result = await cartsCollection.insertOne(selectCourse);
+      res.send(result);
     })
 
 
