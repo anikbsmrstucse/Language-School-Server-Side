@@ -63,11 +63,11 @@ async function run() {
 
     // select class
 
-    app.get('/carts/:email',async(req,res)=>{
-      const email = req.params.email;
+    app.get('/carts',async(req,res)=>{
+      const email = req.query.email;
       console.log(email);
-      const query = {email:email};
-      const result = await cartsCollection.findOne(query);
+      const query = {email:email}
+      const result = await cartsCollection.find(query).toArray()
       res.send(result);
     })
 
