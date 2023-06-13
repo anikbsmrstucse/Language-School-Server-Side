@@ -103,6 +103,13 @@ async function run() {
       res.send(result);
     })
 
+    app.delete('/user/:id',async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    })
+
     // instructors api
     app.get('/instructors',async(req,res)=>{
       const result = await instructorsCollection.find().toArray();
@@ -113,6 +120,43 @@ async function run() {
     app.get('/classes',async(req,res)=>{
         const result = await classesCollection.find().toArray();
         res.send(result);
+    })
+
+    app.patch('/classes/:id',async(req,res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const updateDoc = {
+        $set:{
+          status: 'approved',
+        }
+      }
+      const result = await classesCollection.updateOne(filter,updateDoc);
+      res.send(result);
+    })
+    app.patch('/classes/deny/:id',async(req,res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const updateDoc = {
+        $set:{
+          status: 'denied',
+        }
+      }
+      const result = await classesCollection.updateOne(filter,updateDoc);
+      res.send(result);
+    })
+
+    app.put('/classes/feedback/:id',async(req,res)=>{
+      const feedback = req.body;
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const options = { upsert: true};
+      const updateDoc = {
+        $set:{
+          feedback: feedback,
+        }
+      }
+      const result = await classesCollection.updateOne(filter,updateDoc,options);
+      res.send(result);
     })
 
     // select class
