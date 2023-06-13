@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
@@ -13,6 +14,8 @@ app.use(express.json());
 // mongodb username and password
 const username = process.env.DB_USER;
 const password = process.env.DB_PASS;
+const userToken = process.env.ACCESS_TOKEN;
+console.log(userToken);
 
 // mongodb connection
 
@@ -37,6 +40,16 @@ async function run() {
     const classesCollection = client.db('langSCHOOL').collection('courses');
     const cartsCollection = client.db('langSCHOOL').collection('carts');
     
+
+    //jwt token
+    app.post('/jwt',(req,res)=>{
+      const user = req.body;
+      const token = jwt.sign(user,userToken,{
+        expiresIn: '1h',
+      });
+      res.send({token});
+    })
+
     // users api
 
     app.get('/users',async(req,res)=>{
