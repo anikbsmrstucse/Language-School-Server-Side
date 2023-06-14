@@ -15,7 +15,21 @@ app.use(express.json());
 const username = process.env.DB_USER;
 const password = process.env.DB_PASS;
 const userToken = process.env.ACCESS_TOKEN;
-console.log(userToken);
+
+const verifyJWT = (req,res,next)=>{
+  const authorization = req.headers.authorization;
+  if(!authorization){
+      return res.status(401).send({error:true , message:'unauthorization access'});
+  }
+  const token = authorization.split(' ')[1];
+  jwt.verify(token,userToken,(err,decoded)=>{
+    if(err){
+      return res.status(401).send({error:true , message:'unauthorization access'});
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
 
 // mongodb connection
 
@@ -52,38 +66,58 @@ async function run() {
 
     // users api
 
-    app.get('/users',async(req,res)=>{
+    app.get('/users',verifyJWT,async(req,res)=>{
+      const email = req.decoded.email;
+      const query = {email:email};
+      const user = await userCollection.findOne(query);
+      if(user?.role !== 'admin'){
+        return res.status(403).send({error: true, message:'unauthorize access'});
+      }
       const result = await userCollection.find().toArray();
       res.send(result);
     })
 
-    app.get('/users/admin/:email',async(req,res)=>{
+    app.get('/users/student/:email',verifyJWT,async(req,res)=>{
       const email = req.params.email;
+      const decodedEmail = req.decoded.email;
+      if(email !== decodedEmail){
+        return res.status(403).send({error:true , message:'forbidden access'})
+      }
+      const query = {email : email};
+      const user = await userCollection.findOne(query);
+      const result = {student: user?.role === 'student'};
+      res.send(result);
+     })
+
+    app.get('/users/admin/:email',verifyJWT,async(req,res)=>{
+      const email = req.params.email;
+      const decodedEmail = req.decoded.email;
+      if(email !== decodedEmail){
+        return res.status(403).send({error:true,message:'forbidden access'})
+      }
       const query = {email:email};
       const user = await userCollection.findOne(query);
       const result = {admin: user?.role === 'admin'};
       res.send(result);
     })
 
-    app.get('/users/teacher/:email',async(req,res)=>{
+    app.get('/users/teacher/:email',verifyJWT,async(req,res)=>{
       const email = req.params.email;
+      const decodedEmail = req.decoded.email;
+      if(email !== decodedEmail){
+        return res.status(403).send({error:true,message:'forbidden access'})
+      }
       const query = {email:email};
       const user = await userCollection.findOne(query);
       const result = {teacher: user?.role === true};
       res.send(result);
     })
 
-    app.get('/users/student/:email',async(req,res)=>{
-      const email = req.params.email;
-      const query = {email:email};
-      const user = await userCollection.findOne(query);
-      const result = {student: user?.role === "student"};
-      res.send(result);
-    })
+   
 
     app.post('/users',async(req,res)=>{
       const user = req.body;
-      const query = {email:user?.email};
+      const query = {email: user?.email};
       const existingUser = await userCollection.findOne(query);
       if(existingUser){
         return res.send({message:'user is exist'})
@@ -135,6 +169,29 @@ async function run() {
         res.send(result);
     })
 
+    app.get('/classes/:email',verifyJWT,async(req,res)=>{
+      const email = req.params.email;
+      const query = {email : email}
+      const user = await userCollection.findOne(query);
+      if(user.role !== true){
+        res.status(401).send({error:true , message:'unauthorize access'});
+      }
+      const result = await classesCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    app.post('/classes',verifyJWT,async(req,res)=>{
+      const decodedEmail = req.decoded.email;
+      const query = {email:decodedEmail};
+      const user = await userCollection.findOne(query);
+      if(user?.role !== true){
+        return res.status(401).send({error:true,message:'unauthorize access'});
+      }
+      const newClass = req.body;
+      const result = await classesCollection.insertOne(newClass);
+      res.send(result);
+    })
+
     app.patch('/classes/:id',async(req,res)=>{
       const id = req.params.id;
       const filter = {_id: new ObjectId(id)};
@@ -174,9 +231,13 @@ async function run() {
 
     // select class
 
-    app.get('/carts',async(req,res)=>{
+    app.get('/carts',verifyJWT,async(req,res)=>{
       const email = req.query.email;
-      const query = {email:email}
+      const decodedEmail = req.decoded.email;
+      if(email !== decodedEmail){
+        return res.status(403).send({error:true,message:'forbidden access'})
+      }
+      const query = {email : email}
       const result = await cartsCollection.find(query).toArray()
       res.send(result);
     })
