@@ -150,7 +150,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/teacher/:id", async (req, res) => {
+    app.patch("/users/teacher/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -204,6 +204,34 @@ async function run() {
       const newClass = req.body;
       const result = await classesCollection.insertOne(newClass);
       res.send(result);
+    });
+
+    app.put('/classes/update/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedClass = req.body;
+    
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            name: updatedClass.name,
+            email: updatedClass.email,
+            image: updatedClass.image,
+            instructor: updatedClass.instructor,
+            price: updatedClass.price,
+            available_seats: updatedClass.available_seats,
+            status: updatedClass.status,
+            total_seats: updatedClass.total_seats,
+          },
+        };
+    
+        const result = await classesCollection.updateOne(filter, updateDoc, options);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     });
 
     app.patch("/classes/:id", verifyJWT, async (req, res) => {
@@ -270,13 +298,13 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/carts", async (req, res) => {
+    app.post("/carts",verifyJWT,async (req, res) => {
       const selectCourse = req.body;
       const result = await cartsCollection.insertOne(selectCourse);
       res.send(result);
     });
 
-    app.delete("/carts/:id", async (req, res) => {
+    app.delete("/carts/:id",verifyJWT,async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await cartsCollection.deleteOne(query);
@@ -284,6 +312,14 @@ async function run() {
     });
 
     //payment class save api
+
+    app.get('/payment',async(req,res)=>{
+      const email = req.query.email;
+      const query = {email : email};
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    })
+
     app.post("/payment", verifyJWT, async (req, res) => {
       const saveclass = req.body;
       const result = await paymentCollection.insertOne(saveclass);
@@ -292,7 +328,7 @@ async function run() {
 
     // after payment classes enrollment grater 1 and available seat less 1
 
-    app.patch("/classes/enrollment/:id", async (req, res) => {
+    app.patch("/classes/enrollment/:id",verifyJWT,async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const existingClass = await classesCollection.findOne(filter);
